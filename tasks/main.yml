@@ -1,0 +1,66 @@
+---
+- name: Gather active sessions
+  ansible.builtin.command:
+    cmd: who
+  register: active_sessions
+  changed_when: false  # noqa: no-changed-when
+
+- name: Parse and filter TTY sessions
+  ansible.builtin.set_fact:
+    tty_sessions_raw: "{{ active_sessions.stdout_lines | select('search', 'tty') | list }}"
+
+- name: Initialize temporary empty list for TTY sessions with hostname
+  ansible.builtin.set_fact:
+    _tty_sessions: []
+
+- name: Create temporary custom list of TTY sessions with hostname
+  ansible.builtin.set_fact:
+    _tty_sessions: >-
+      {{
+        _tty_sessions +
+        [
+          {
+            'host': inventory_hostname,
+            'username': item.split()[0],
+            'tty': item.split()[1],
+            'login_date': item.split()[2] + ' ' + item.split()[3]
+          }
+        ]
+      }}
+  loop: "{{ tty_sessions_raw }}"
+  loop_control:
+    label: "{{ inventory_hostname }}"
+  when: tty_sessions_raw | length > 0
+
+- name: Combine all into one list
+  ansible.builtin.set_fact:
+    tty_sessions: "{{ hostvars | json_query('*._tty_sessions[]') }}"
+
+- name: Output TTY sessions
+  ansible.builtin.debug:
+    var: tty_sessions
+  delegate_to: localhost
+  run_once: true  # noqa run-once[task]
+  when: tty_sessions | length > 0
+
+- name: Email
+  community.general.mail:
+    host: "{{ tty_session_smtp_server | default(omit) }}"
+    port: "{{ tty_session_smtp_port | default(omit) }}"
+    username: "{{ tty_session_smtp_username | default(omit) }}"
+    password: "{{ tty_session_smtp_password | default(omit) }}"
+    secure: "{{ tty_session_smtp_secure | default(omit) }}"
+    to: "{{ tty_session_email_recipient | default(omit) }}"
+    cc: "{{ tty_session_email_recipient_cc | default(omit) }}"
+    bcc: "{{ tty_session_email_recipient_bcc | default(omit) }}"
+    sender: "{{ tty_session_email_sender | default(omit) }}"
+    subject: "{{ tty_session_email_subject }}"
+    body: "{{ lookup('template', 'email_body.html.j2') }}"
+    subtype: "{{ tty_session_email_subtype | default(omit) }}"
+    headers: "{{ tty_session_email_headers | default(omit) }}"
+  run_once: true  # noqa run-once[task]
+  delegate_to: localhost
+  become: false
+  when:
+    - tty_session_email_enabled | default(false)
+    - tty_sessions | length > 0

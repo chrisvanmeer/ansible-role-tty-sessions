@@ -1,0 +1,9 @@
+---
+# defaults file for ansible-role-tty-sessions
+
+# Default email reporting is disabled, set the following to true to enable
+# tty_session_email_enabled: true
+tty_session_email_subject: "Open TTY sessions"
+
+# Set the output to HTML
+tty_session_email_subtype: "html"

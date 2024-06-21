@@ -1,0 +1,26 @@
+---
+galaxy_info:
+  author: Chris van Meer
+  description: Open TTY sessions
+  company: AT Computing
+  namespace: chrisvanmeer
+  role_name: tty_sessions
+
+  license: BSD
+
+  min_ansible_version: '2.15'
+
+  platforms:
+    - name: EL
+      versions:
+        - all
+    - name: Debian
+      versions:
+        - all
+
+  galaxy_tags:
+    - tty
+    - sessions
+    - monitoring
+
+dependencies: []
