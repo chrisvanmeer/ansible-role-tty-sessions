@@ -1,0 +1,26 @@
+---
+# Email is always sent from the Ansible controller (delegate_to: localhost)
+# and never with become privileges: managed hosts usually have no access to
+# the SMTP relay while the controller does, and become is not required to
+# send mail. The report also runs once, for all hosts combined.
+- name: Send email report
+  community.general.mail:
+    host: "{{ tty_session_smtp_server | default(omit, true) }}"
+    port: "{{ tty_session_smtp_port | default(omit, true) }}"
+    username: "{{ tty_session_smtp_username | default(omit, true) }}"
+    password: "{{ tty_session_smtp_password | default(omit, true) }}"
+    secure: "{{ tty_session_smtp_secure | default(omit, true) }}"
+    to: "{{ tty_session_email_recipient | default(omit, true) }}"
+    cc: "{{ tty_session_email_recipient_cc | default(omit, true) }}"
+    bcc: "{{ tty_session_email_recipient_bcc | default(omit, true) }}"
+    sender: "{{ tty_session_email_sender | default(omit, true) }}"
+    subject: "{{ tty_session_email_subject }}"
+    body: "{{ lookup('ansible.builtin.template', 'email_body.html.j2') }}"
+    subtype: "{{ tty_session_email_subtype }}"
+    headers: "{{ tty_session_email_headers | default(omit, true) }}"
+  run_once: true  # noqa run-once[task]
+  delegate_to: localhost
+  become: false
+  when:
+    - tty_session_email_enabled | bool
+    - tty_sessions | length > 0

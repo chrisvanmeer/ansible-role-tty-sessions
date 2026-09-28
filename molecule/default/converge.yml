@@ -1,0 +1,69 @@
+---
+- name: Converge - run the role with email reporting disabled
+  hosts: instance
+  gather_facts: false
+  tasks:
+    - name: Include the role under test
+      ansible.builtin.include_role:
+        name: ansible-role-tty-sessions
+
+- name: Functional email test - report must be sent from the controller
+  hosts: instance
+  gather_facts: false
+  vars:
+    tty_session_email_enabled: true
+    tty_session_email_sender: "tty-sessions@example.com"
+    tty_session_email_recipient: "soc@example.com"
+    tty_session_email_subject: "Functional test subject"
+    # Mailpit only listens on the controller loopback (127.0.0.1:1025).
+    # When this play fails to connect, the email was NOT sent from the
+    # controller and the delegation is broken.
+    tty_session_smtp_server: "127.0.0.1"
+    tty_session_smtp_port: 1025
+  tasks:
+    - name: Run the email reporting tasks with simulated gathered sessions
+      ansible.builtin.include_role:
+        name: ansible-role-tty-sessions
+        tasks_from: email.yml
+      vars:
+        tty_sessions:
+          - host: "{{ inventory_hostname }}"
+            username: alice
+            tty: tty1
+            login_date: "2026-09-22 10:00"
+          - host: "{{ inventory_hostname }}"
+            username: bob
+            tty: tty2
+            login_date: "2026-09-22 11:00"
+
+- name: Verify results
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    expected_subject: "Functional test subject"
+  tasks:
+    - name: Assert the sessions fact collected by the role
+      ansible.builtin.assert:
+        that:
+          - hostvars.instance.tty_sessions is defined
+          - hostvars.instance.tty_sessions is sequence
+          - hostvars.instance._tty_sessions is defined
+          - hostvars.instance._tty_sessions is sequence
+
+    - name: Fetch received messages from the Mailpit API
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:8025/api/v1/messages"
+      register: mailpit_messages
+      retries: 10
+      delay: 1
+      until: mailpit_messages.status == 200
+
+    - name: Assert every received message is the enabled test report
+      ansible.builtin.assert:
+        that:
+          - mailpit_messages.json.total | int >= 1
+          - mailpit_messages.json.messages
+            | selectattr('Subject', 'equalto', expected_subject)
+            | list | length == mailpit_messages.json.total
+          - mailpit_messages.json.messages[0].To[0].Address == "soc@example.com"

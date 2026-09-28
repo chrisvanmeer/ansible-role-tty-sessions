@@ -1,0 +1,9 @@
+---
+- name: Verify
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Verify is performed by the convergence play
+      ansible.builtin.debug:
+        msg: "All functional assertions ran in molecule/default/converge.yml"

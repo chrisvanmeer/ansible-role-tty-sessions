@@ -1,9 +1,44 @@
 ---
 # defaults file for ansible-role-tty-sessions
 
-# Default email reporting is disabled, set the following to true to enable
-# tty_session_email_enabled: true
+# Whether to send an email report when open TTY sessions are detected
+tty_session_email_enabled: false
+
+# Email subject used in the report
 tty_session_email_subject: "Open TTY sessions"
 
-# Set the output to HTML
+# Email MIME type of the report: "html" or "plain"
 tty_session_email_subtype: "html"
+
+# From address of the report. Required when email reporting is enabled.
+tty_session_email_sender: null
+
+# Recipient of the report, a single address or a comma separated list.
+# Required when email reporting is enabled.
+tty_session_email_recipient: null
+
+# Optional carbon copy recipients
+tty_session_email_recipient_cc: null
+
+# Optional blind carbon copy recipients
+tty_session_email_recipient_bcc: null
+
+# Optional extra email headers, as a dictionary
+tty_session_email_headers: null
+
+# SMTP relay the report is sent through. This must be reachable from the
+# Ansible controller, not from the managed hosts. Required when email
+# reporting is enabled.
+tty_session_smtp_server: null
+
+# SMTP relay port, defaults to 25
+tty_session_smtp_port: null
+
+# Optional username for authenticated SMTP relay
+tty_session_smtp_username: null
+
+# Optional password for authenticated SMTP relay
+tty_session_smtp_password: null
+
+# SMTP encryption: "auto", "starttls", "starttls/assume" or "no"
+tty_session_smtp_secure: null

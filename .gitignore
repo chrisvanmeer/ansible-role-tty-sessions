@@ -1,0 +1,7 @@
+---
+# Ansible role used by CI, molecule and linting
+.ansible/
+
+# Molecule and test artifacts
+.cache/
+*.tar.gz

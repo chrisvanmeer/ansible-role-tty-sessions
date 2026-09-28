@@ -1,0 +1,32 @@
+---
+driver:
+  name: docker
+
+platforms:
+  - name: instance
+    image: python:3.12-slim
+    pre_build_image: true
+    command: sleep infinity
+
+  # Sidecar SMTP sink + API: only published on the host (controller) loopback,
+  # so the functional email test only succeeds if mail is sent from the
+  # controller instead of the managed host.
+  - name: mailpit
+    image: axllent/mailpit:latest
+    pre_build_image: true
+    command: --smtp 0.0.0.0:1025 --listen 0.0.0.0:8025
+    published_ports:
+      - "127.0.0.1:1025:1025"
+      - "127.0.0.1:8025:8025"
+
+provisioner:
+  name: ansible
+  log: true
+
+ansible:
+  env:
+    ANSIBLE_FORCE_COLOR: "true"
+    ANSIBLE_ROLES_PATH: "$MOLECULE_PROJECT_DIRECTORY/.."
+
+verifier:
+  name: ansible
